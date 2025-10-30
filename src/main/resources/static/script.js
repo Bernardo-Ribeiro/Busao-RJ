@@ -1,5 +1,6 @@
-// Use Spring Boot backend served at the same origin
-const API_ONIBUS = `${location.origin}/onibus`
+// Use Spring Boot backend. If window.API_BASE is defined (e.g., when hosted on Wasmer), use it; otherwise same-origin
+const API_BASE = (typeof window !== 'undefined' && window.API_BASE && String(window.API_BASE).trim()) || location.origin
+const API_ONIBUS = `${API_BASE.replace(/\/$/, '')}/onibus`
 
 const INITIAL_LAT_LON = [-22.9145, -43.4477]
 const INITIAL_ZOOM = 11

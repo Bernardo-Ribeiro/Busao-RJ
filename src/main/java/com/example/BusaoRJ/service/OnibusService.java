@@ -22,14 +22,29 @@ public class OnibusService {
 
     public List<Onibus> getOnibus(String linha, Double latMin, Double latMax, Double lonMin, Double lonMax) throws Exception {
         long now = System.currentTimeMillis();
-        if (cache == null || now - lastUpdate > 60000) {
+        if (cache == null || now - lastUpdate > 30000) {
             var client = HttpClient.newHttpClient();
             var request = HttpRequest.newBuilder()
                     .uri(URI.create(API_URL))
                     .GET()
                     .build();
             var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            cache = mapper.readValue(response.body(), new TypeReference<>() {});
+            // A API pode retornar latitude/longitude como string com vírgula decimal.
+            // Fazemos a normalização manual antes de popular o cache tipado.
+            var rawList = mapper.readValue(response.body(), new TypeReference<List<java.util.Map<String, Object>>>() {});
+            cache = rawList.stream().map(item -> {
+                var o = new Onibus();
+                Object ordem = item.get("ordem");
+                Object linhaObj = item.get("linha");
+                Object latObj = item.get("latitude");
+                Object lonObj = item.get("longitude");
+
+                o.setOrdem(ordem == null ? null : String.valueOf(ordem));
+                o.setLinha(linhaObj == null ? null : String.valueOf(linhaObj));
+                o.setLatitude(parseToDouble(latObj));
+                o.setLongitude(parseToDouble(lonObj));
+                return o;
+            }).toList();
             lastUpdate = now;
         }
 
@@ -38,5 +53,15 @@ public class OnibusService {
                 .filter(o -> latMin == null || (o.getLatitude() >= latMin && o.getLatitude() <= latMax))
                 .filter(o -> lonMin == null || (o.getLongitude() >= lonMin && o.getLongitude() <= lonMax))
                 .collect(Collectors.toList());
+    }
+
+    private static double parseToDouble(Object v) {
+        if (v == null) return 0.0;
+        if (v instanceof Number n) return n.doubleValue();
+        String s = String.valueOf(v).trim();
+        if (s.isEmpty()) return 0.0;
+        // normaliza vírgula para ponto
+        s = s.replace(',', '.');
+        try { return Double.parseDouble(s); } catch (NumberFormatException e) { return 0.0; }
     }
 }

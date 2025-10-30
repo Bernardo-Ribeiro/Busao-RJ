@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: busao-rj
+    env: docker
+    plan: free
+    autoDeploy: true
+    dockerfilePath: Dockerfile
+    # Render passes PORT, our app reads server.port=${PORT:8080}
+    healthCheckPath: /
+    envVars:
+      - key: JAVA_OPTS
+        value: -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC
