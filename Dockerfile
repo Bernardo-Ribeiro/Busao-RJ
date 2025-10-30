@@ -8,6 +8,9 @@ WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw mvnw.cmd pom.xml ./
 
+# Ensure wrapper is executable and fix CRLF if repo was checked out on Windows
+RUN chmod +x mvnw && sed -i 's/\r$//' mvnw
+
 # Go offline to cache dependencies
 RUN ./mvnw -q -DskipTests dependency:go-offline
 
